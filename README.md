@@ -2,7 +2,7 @@
 
 一个用于自动签到 [E-Hentai](https://e-hentai.org) 的 Python 脚本。
 
-请使用青龙面板运行，如需在物理机上运行，则需要自己配置环境变量和通知模块（本项目中的 `notify.py` 引用自[青龙面板](https://github.com/whyour/qinglong)项目，如有需要请自行前往更新）。
+请使用青龙面板运行，如需在物理机上运行，则需要自己配置环境变量和通知模块（请前往[青龙面板](https://github.com/whyour/qinglong)项目自行下载 `notify.py` 文件）。
 
 ## 功能
 
