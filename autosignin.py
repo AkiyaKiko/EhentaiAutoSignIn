@@ -1,7 +1,7 @@
 # 建议设置每天凌晨自动运行
 '''
 new Env('E-Hentai 自动签到')
-1 0 * * * autosignin.py
+1 */3 * * * autosignin.py
 '''
 
 import logging
