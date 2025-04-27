@@ -84,6 +84,13 @@ def scrape():
 
         if event_pane:
             text_lines = [p.get_text() for p in event_pane.find_all('p')]
+
+            # Check for "encounter" (case-insensitive)
+            for line in text_lines:
+                if 'encounter' in line.lower():  # Case-insensitive check
+                    logging.info('出现 Random Encounter！')
+                    send_notify('签到结果', '出现 Random Encounter！')
+
             logging.info('签到成功！')
             for line in text_lines:
                 logging.info(line)
