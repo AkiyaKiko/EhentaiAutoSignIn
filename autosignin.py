@@ -166,8 +166,8 @@ def scrape():
                     logging.info('出现 Random Encounter！')
                     send_notify('签到结果', '出现 Random Encounter！')
 
-            logging.info('签到成功！')
-            send_notify('签到结果', '签到成功！\n' + '\n'.join(text_lines))
+            logging.info('签到成功！'.join(text_lines))
+            send_notify('签到结果', '签到成功！'.join(text_lines))
             return text_lines
         else:
             logging.info('已经签到了！')
