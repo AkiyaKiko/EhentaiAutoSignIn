@@ -1,7 +1,7 @@
 # 建议设置每天凌晨自动运行
 '''
 new Env('E-Hentai 自动签到')
-1 */3 * * * autosignin.py
+1 */6 * * * autosignin.py
 '''
 
 import logging
@@ -131,10 +131,14 @@ def compare_and_update_cookie_env(new_cookies, expires_info):
         # 组装新cookie并写入 os.environ
         new_cookie_str = '; '.join([f'{k}={v}' for k, v in updated_cookie_dict.items()])
         os.environ['E_COOKIE'] = new_cookie_str
-        logging.info(f'已更新 os.environ 中的 E_COOKIE：{new_cookie_str}')
+        logging.info(f'已更新 os.environ 中的 E_COOKIE：{mask_cookie(new_cookie_str)}')
 
-        # 发送过期时间通知
-        notify_lines = [f"{k} 过期时间: {v}" for k, v in expires_info if k in updated_cookie_dict]
+        # 发送过期时间通知，排除 event 字段
+        notify_lines = [
+            f"{k} 过期时间: {v}" 
+            for k, v in expires_info 
+            if k in updated_cookie_dict and k != 'event'
+        ]
         if notify_lines:
             send_notify("Cookie 更新提醒", '\n'.join(notify_lines))
     else:
@@ -160,18 +164,29 @@ def scrape():
         event_pane = soup.find('div', id='eventpane')
 
         if event_pane:
-            text_lines = [p.get_text() for p in event_pane.find_all('p')]
-            for line in text_lines:
-                if 'encounter' in line.lower():
-                    logging.info('出现 Random Encounter！')
-                    send_notify('签到结果', '出现 Random Encounter！')
+            # 先拿所有文本（div 和 p 都能抓到）
+            event_text = event_pane.get_text(separator=' ', strip=True).lower()
 
-            logging.info('签到成功！'.join(text_lines))
-            send_notify('签到结果', '签到成功！'.join(text_lines))
-            return text_lines
+            if "encounter" in event_text:
+                logging.info('出现 Random Encounter！')
+                send_notify('签到结果', '出现 Random Encounter！请手动前往处理，或者等待这一随机事件结束！')
+                return "Random Encounter"
+
+            # 如果不是 encounter，就去找 <p> 标签的内容
+            text_lines = [p.get_text(strip=True) for p in event_pane.find_all('p')]
+            if text_lines:
+                result_text = "签到成功！\n" + "\n".join(text_lines)
+                logging.info(result_text)
+                send_notify('签到结果', result_text)
+                return text_lines
+            else:
+                # 没有 <p> 但也不是 encounter → 当作已签到
+                logging.info('已经签到了！')
+                send_notify('签到结果', '已经签到了！')
+                return '已经签到了！'
         else:
-            logging.info('已经签到了！')
-            send_notify('签到结果', '已经签到了！')
+            logging.info('没有找到 eventpane')
+            send_notify('签到结果', '没有找到签到信息，可能页面结构改变。')
             return '没有找到目标信息'
 
     except requests.exceptions.RequestException as e:
