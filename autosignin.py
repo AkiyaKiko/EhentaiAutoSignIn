@@ -179,15 +179,15 @@ def scrape():
                 logging.info(result_text)
                 send_notify('签到结果', result_text)
                 return text_lines
-            else:
-                # 没有 <p> 但也不是 encounter → 当作已签到
-                logging.info('已经签到了！')
-                send_notify('签到结果', '已经签到了！')
-                return '已经签到了！'
+            # else:
+            #     # 没有 <p> 但也不是 encounter → 当作已签到
+            #     logging.info('已经签到了！')
+            #     send_notify('签到结果', '已经签到了！')
+            #     return '已经签到了！'
         else:
-            logging.info('没有找到 eventpane')
-            send_notify('签到结果', '没有找到签到信息，可能页面结构改变。')
-            return '没有找到目标信息'
+            logging.info('没有找到 eventpane 已经签到了！')
+            send_notify('签到结果', '没有事件，已经签到了！')
+            return '没有事件，已经签到了！'
 
     except requests.exceptions.RequestException as e:
         msg = f'发生请求错误: {e}'
