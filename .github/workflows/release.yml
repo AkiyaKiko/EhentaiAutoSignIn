@@ -1,0 +1,138 @@
+name: Build release executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      valid: ${{ steps.check.outputs.valid }}
+    steps:
+      - name: Check version tag
+        id: check
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'valid=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'valid=false' >> "$GITHUB_OUTPUT"
+            echo "Skipping non-version tag: $TAG"
+          fi
+
+  test:
+    needs: validate-tag
+    if: needs.validate-tag.outputs.valid == 'true'
+    name: Test ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-2025
+            python_arch: x64
+          - target: windows-arm64
+            runner: windows-11-arm
+            python_arch: arm64
+          - target: linux-x64
+            runner: ubuntu-22.04
+            python_arch: x64
+          - target: linux-arm64
+            runner: ubuntu-22.04-arm
+            python_arch: arm64
+          - target: macos-x64
+            runner: macos-15-intel
+            python_arch: x64
+          - target: macos-arm64
+            runner: macos-15
+            python_arch: arm64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.python_arch }}
+      - name: Verify Python architecture
+        run: python .github/scripts/verify_arch.py ${{ matrix.target }}
+      - name: Install project and test dependencies
+        run: python -m pip install ".[test]"
+      - name: Run pytest
+        run: python -m pytest -q
+
+  build:
+    # 等所有平台的测试全部通过后才开始任意构建。
+    needs: [validate-tag, test]
+    if: needs.validate-tag.outputs.valid == 'true'
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-2025
+            python_arch: x64
+          - target: windows-arm64
+            runner: windows-11-arm
+            python_arch: arm64
+          - target: linux-x64
+            runner: ubuntu-22.04
+            python_arch: x64
+          - target: linux-arm64
+            runner: ubuntu-22.04-arm
+            python_arch: arm64
+          - target: macos-x64
+            runner: macos-15-intel
+            python_arch: x64
+          - target: macos-arm64
+            runner: macos-15
+            python_arch: arm64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.python_arch }}
+      - name: Verify Python architecture
+        run: python .github/scripts/verify_arch.py ${{ matrix.target }}
+      - name: Install project and build tool
+        run: python -m pip install . pyinstaller==6.22.3
+      - name: Build executable
+        run: python -m PyInstaller --noconfirm --onefile --name EhentaiAutoSignIn --hidden-import urllib3.contrib.socks --hidden-import socks main.py
+      - name: Check and package executable
+        run: python .github/scripts/package_release.py ${{ matrix.target }}
+      - name: Verify extraction as root in a temporary directory
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo "$(command -v python)" .github/scripts/package_release.py --verify "release/EhentaiAutoSignIn-${{ matrix.target }}.zip" "${{ matrix.target }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-${{ matrix.target }}
+          path: release/*.zip
+          if-no-files-found: error
+
+  release:
+    needs: [validate-tag, build]
+    if: needs.validate-tag.outputs.valid == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: release
+          pattern: build-*
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: release/*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true

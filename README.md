@@ -4,6 +4,14 @@
 
 旧版 `autosignin.py` 仅保留青龙面板兼容用途，后续不再维护；请迁移到 `main.py` 和本地 `.env`。
 
+## 下载可执行文件
+
+从 GitHub Releases 下载适合系统和架构的压缩包，解压后将 `.env.example` 复制为同目录的 `.env` 并填写配置。运行压缩包中的 `EhentaiAutoSignIn.exe`（Windows）或 `./EhentaiAutoSignIn`（Linux / macOS）；附加 `--once` 可立即签到一次并退出。Linux / macOS 如遇执行权限问题，可先运行 `chmod +x EhentaiAutoSignIn`。
+
+可执行文件无需安装 Python，运行期间请保持终端开启；Cookie 更新和默认的 `logs` 目录位于可执行文件所在目录，请确保该目录可写。Windows、Linux 和 macOS 分别提供 x64、ARM64 版本。Linux 构建基于 Ubuntu 22.04。
+
+发布包只包含程序、说明、配置示例、通知模块和许可证，不包含 `.env`、日志或目录条目；文件权限和 ZIP 元数据会在发布前校验。Linux 发布流程还会在隔离目录中验证普通用户及 root 解压，确保目标目录和已有配置、日志的权限与属主不变。建议先解压到独立目录，再按需更新程序。
+
 ## 安装和配置
 
 安装 Python 3.12 或更高版本，在项目目录创建并激活虚拟环境：
@@ -38,13 +46,13 @@ Notify='{"GOTIFY_URL":"https://gotify.example.com","GOTIFY_TOKEN":"应用Token",
 E_SCHEDULE='00:30,12:30'
 ```
 
-- `E_COOKIE` 必填，建议复制浏览器发送的完整 Cookie；其中必须包含 `event` 字段，值可以是任意数字。服务端更新受支持的 Cookie 时，程序会自动写回项目目录的 `.env`。
+- `E_COOKIE` 必填，建议复制浏览器发送的完整 Cookie；其中必须包含 `event` 字段，值可以是任意数字。服务端更新受支持的 Cookie 时，程序会自动写回程序目录的 `.env`。
 - `E_PROXY` 可留空，支持 `http://`、`https://`、`socks4://`、`socks4a://`、`socks5://` 和 `socks5h://`。其中 `socks4a` 和 `socks5h` 通过代理解析域名；配置示例见 `.env.example`。
 - `E_USER_AGENT` 可留空，留空时使用默认值。
 - `Notify` 可留空或填 `{}` 关闭通知；推送配置见下文。
 - `E_SCHEDULE` 为逗号分隔的 24 小时时间，留空时默认每天 00:30 和 12:30，按系统本地时间运行。
 
-`.env` 中的配置优先于同名系统环境变量；请保持项目目录可写，并妥善保管 Cookie 和通知 Token。
+`.env` 中的配置优先于同名系统环境变量；请保持程序目录可写，并妥善保管 Cookie 和通知 Token。
 
 ## 运行
 
@@ -83,7 +91,7 @@ LOG_MAX_MB='5'
 LOG_RETENTION_DAYS='30'
 ```
 
-默认输出到项目目录的 `logs/ehentai.log`，单个文件达到 5 MiB 或跨日后写入时轮转，最多保留 30 个备份。过期备份在启动、轮转或后续写日志时清理；修改配置后需重启。控制台输出保留，`notify.py` 的独立打印不会写入日志文件。
+默认输出到程序目录的 `logs/ehentai.log`，单个文件达到 5 MiB 或跨日后写入时轮转，最多保留 30 个备份。过期备份在启动、轮转或后续写日志时清理；修改配置后需重启。控制台输出保留，`notify.py` 的独立打印不会写入日志文件。
 
 ## TLS 兼容性
 

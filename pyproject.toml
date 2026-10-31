@@ -11,6 +11,11 @@ dependencies = [
     "urllib3>=2.5.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8,<10",
+]
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"

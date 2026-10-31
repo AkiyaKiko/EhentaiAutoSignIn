@@ -3,10 +3,18 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import tempfile
 
-# 无论从哪个目录启动，都使用项目目录中的 .env。
-ENV_PATH = Path(__file__).resolve().parent.parent / '.env'
+
+def application_dir():
+    """源码运行时使用项目目录；打包后使用可执行文件所在目录。"""
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent.parent
+
+
+ENV_PATH = application_dir() / '.env'
 DEFAULT_SCHEDULE = ('00:30', '12:30')
 
 
