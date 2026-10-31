@@ -2,6 +2,8 @@ import importlib.util
 import os
 from pathlib import Path
 import stat
+import subprocess
+import sys
 import zipfile
 
 import pytest
@@ -120,6 +122,20 @@ def test_rejects_duplicate_files(untrusted_zip):
         archive = untrusted_zip(duplicate)
     with pytest.raises(ValueError):
         packaging.verify_archive(archive, 'linux-x64')
+
+
+def test_archive_verification_uses_utf8_with_non_ascii_path(package_root):
+    archive = packaging.create_archive(package_root, package_root / '发布', 'windows-x64')
+    env = os.environ.copy()
+    # 与工作流一致，即使系统默认代码页不是 UTF-8 也能打印路径。
+    env['PYTHONUTF8'] = '1'
+    env['PYTHONIOENCODING'] = 'utf-8'
+    result = subprocess.run(
+        [sys.executable, str(script), '--verify', str(archive), 'windows-x64'],
+        env=env, capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr.decode('utf-8', errors='replace')
+    assert '发布' in result.stdout.decode('utf-8')
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='POSIX 解压验证需要 Linux 或 macOS')

@@ -139,9 +139,9 @@ def main():
     else:
         raise SystemExit('用法: package_release.py <platform> 或 --verify <archive> <platform>')
     verify_archive(archive, platform_name)
-    print(f'发布包内容和权限检查通过：{archive}')
+    print(f'Release archive contents and permissions verified: {archive}')
     if verify_extraction(archive, platform_name):
-        print('隔离解压检查通过：目标目录权限、属主和已有配置及日志未改变。')
+        print('Isolated extraction preserved directory metadata and existing configuration and logs.')
 
 
 if __name__ == '__main__':

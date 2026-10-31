@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Windows 运行器可能使用 CP1252，统一 Python 的默认编码和控制台编码。
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: 'utf-8'
+
 jobs:
   validate-tag:
     runs-on: ubuntu-latest

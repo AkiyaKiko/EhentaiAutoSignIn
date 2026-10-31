@@ -8,7 +8,7 @@ def main(target):
     platform_name, architecture = target.split('-', 1)
     expected_system = {'windows': 'win32', 'linux': 'linux', 'macos': 'darwin'}[platform_name]
     if sys.platform != expected_system:
-        raise SystemExit(f'预期系统 {expected_system}，实际系统 {sys.platform}')
+        raise SystemExit(f'Expected system {expected_system}, got {sys.platform}')
 
     if platform_name == 'windows':
         actual = {'win-amd64': 'x64', 'win-arm64': 'arm64'}.get(sysconfig.get_platform().lower())
@@ -16,8 +16,8 @@ def main(target):
         actual = {'x86_64': 'x64', 'amd64': 'x64', 'aarch64': 'arm64',
                   'arm64': 'arm64'}.get(platform.machine().lower())
     if actual != architecture:
-        raise SystemExit(f'预期架构 {architecture}，实际架构 {actual or platform.machine()}')
-    print(f'构建目标已验证: {target}')
+        raise SystemExit(f'Expected architecture {architecture}, got {actual or platform.machine()}')
+    print(f'Build target verified: {target}')
 
 
 if __name__ == '__main__':
