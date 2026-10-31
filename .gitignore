@@ -173,4 +173,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-notify.py
+# Local log files and their rotated backups
+/logs/
