@@ -55,6 +55,26 @@ def test_signin_results(html, expected, message, monkeypatch):
     assert message in send.call_args.args[1]
 
 
+
+@pytest.mark.parametrize('reward_html', [
+    'You gain <strong>131</strong> EXP, <strong>397</strong> Credits!',
+    'You gain<span>131</span><b>EXP</b>,<span>397</span><b>Credits</b>!',
+])
+def test_reward_text_keeps_spaces_around_inline_values(reward_html, monkeypatch):
+    html = (
+        '<div id="eventpane"><p>It is the dawn of a new day!</p>'
+        '<p>Reflecting on your journey so far, you find that you are a little wiser.</p>'
+        f'<p>{reward_html}</p></div>'
+    )
+    send = Mock()
+    monkeypatch.setattr(signin, 'init_config', Mock())
+    monkeypatch.setattr(signin, 'request_page', lambda: response(html))
+    monkeypatch.setattr(signin, 'send_notify', send)
+    lines = signin.scrape()
+    assert lines[-1] == 'You gain 131 EXP, 397 Credits!'
+    assert send.call_args.args[1] == '签到成功！\n' + '\n'.join(lines)
+
+
 def test_request_errors_notify_and_propagate(monkeypatch):
     send = Mock()
     monkeypatch.setattr(signin, 'init_config', Mock())

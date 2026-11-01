@@ -23,3 +23,8 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["ehentai"]
 py-modules = ["main", "notify"]
+
+[dependency-groups]
+dev = [
+    "pyinstaller==6.22.3",
+]

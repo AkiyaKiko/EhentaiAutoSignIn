@@ -110,7 +110,14 @@ jobs:
         run: python .github/scripts/verify_arch.py ${{ matrix.target }}
       - name: Install project and build tool
         run: python -m pip install . pyinstaller==6.22.3
-      - name: Build executable
+      - name: Build executable (Linux)
+        if: runner.os == 'Linux'
+        run: python -m PyInstaller --noconfirm --onefile --strip --name EhentaiAutoSignIn --hidden-import urllib3.contrib.socks --hidden-import socks main.py
+      - name: Check Linux debug sections
+        if: runner.os == 'Linux'
+        run: python .github/scripts/check_linux_symbols.py dist/EhentaiAutoSignIn
+      - name: Build executable (Windows / macOS)
+        if: runner.os != 'Linux'
         run: python -m PyInstaller --noconfirm --onefile --name EhentaiAutoSignIn --hidden-import urllib3.contrib.socks --hidden-import socks main.py
       - name: Check and package executable
         run: python .github/scripts/package_release.py ${{ matrix.target }}

@@ -3,6 +3,7 @@ import http.cookies
 import json
 import logging
 import os
+import re
 import time
 
 import requests
@@ -240,8 +241,9 @@ def scrape():
             send_notify('签到结果', msg)
             return 'Random Encounter'
 
+        # 内联标签可能把文字和数字拆成多个节点；标点前不应多出空格。
         text_lines = [
-            p.get_text(strip=True)
+            re.sub(r'\s+([,.;:!?])', r'\1', p.get_text(' ', strip=True))
             for p in event_pane.find_all('p')
         ]
 
