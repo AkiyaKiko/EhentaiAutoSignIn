@@ -10,7 +10,7 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-DOCUMENTS = ('README.md', 'README.en.md', '.env.example', 'LICENSE', 'notify.py')
+DOCUMENTS = ('README.md', 'README.en.md', 'README.qinglong.md', '.env.example', 'LICENSE', 'notify.py')
 PLATFORMS = {
     'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64',
     'macos-x64', 'macos-arm64',

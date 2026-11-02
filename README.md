@@ -2,6 +2,8 @@
 
 [English Version](README.en.md)
 
+> **仍在使用青龙面板？** 请查看[旧版青龙面板部署教程](README.qinglong.md)。旧版脚本不再维护，建议迁移至单机部署。
+
 自动访问 E-Hentai 新闻页面，支持定时签到、Cookie 更新和消息通知。可执行文件无需安装 Python。
 
 ## 快速开始

@@ -2,6 +2,8 @@
 
 [中文说明](README.md)
 
+> **Using Qinglong Panel?** See the [legacy Qinglong deployment guide](README.qinglong.md) (Chinese). The legacy script is no longer maintained; standalone deployment is recommended.
+
 Automatically visits the E-Hentai news page to sign in. Supports scheduled sign-ins, Cookie updates, and notifications. The executable does not require Python to be installed.
 
 ## Quick start
