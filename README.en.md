@@ -49,12 +49,17 @@ Release archives do not contain `.env`, logs, or directory entries. File permiss
 
 ## Docker deployment
 
-The image supports Linux amd64 and arm64. For example, on Linux, run the following in a directory containing `.env.example`:
+The image supports Linux amd64 and arm64. For example, on Linux, first prepare the configuration in a directory containing `.env.example`:
 
 ```bash
 mkdir -p data
 cp .env.example data/.env
 # Edit data/.env and configure your Cookie and other settings.
+```
+
+Start it with Docker:
+
+```bash
 docker run -d --name ehentai-signin \
   --user "$(id -u):$(id -g)" \
   -e TZ=Asia/Shanghai \
@@ -62,6 +67,29 @@ docker run -d --name ehentai-signin \
   ghcr.io/akiyakiko/ehentaiautosignin:latest
 docker logs -f ehentai-signin
 ```
+
+Alternatively, create `compose.yaml` in the same directory and use Docker Compose:
+
+```yaml
+services:
+  ehentai-signin:
+    image: ghcr.io/akiyakiko/ehentaiautosignin:latest
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/data
+```
+
+Set `user` to your host user and group IDs from `id -u` and `id -g`, then run:
+
+```bash
+docker compose up -d
+docker compose logs -f
+```
+
+`restart: unless-stopped` starts the container when Docker starts; make sure the Docker service is enabled at boot. A container stopped manually will remain stopped.
 
 `TZ` sets the time zone used for scheduled sign-ins; the container defaults to UTC. Mount the entire `data` directory to persist Cookie updates and default logs, and make sure the container user can write to it. Mounting `.env` alone does not support atomic updates. Inside the container, proxy address `127.0.0.1` refers to the container itself. You can replace `latest` with a version tag, such as `v1.2.3`.
 

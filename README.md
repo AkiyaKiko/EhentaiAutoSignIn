@@ -49,12 +49,17 @@
 
 ## Docker 部署
 
-镜像支持 Linux amd64 和 arm64。以下以 Linux 为例，在包含 `.env.example` 的目录中执行：
+镜像支持 Linux amd64 和 arm64。以下以 Linux 为例，先在包含 `.env.example` 的目录中准备配置：
 
 ```bash
 mkdir -p data
 cp .env.example data/.env
 # 编辑 data/.env，填写 Cookie 等配置
+```
+
+使用 Docker 启动：
+
+```bash
 docker run -d --name ehentai-signin \
   --user "$(id -u):$(id -g)" \
   -e TZ=Asia/Shanghai \
@@ -62,6 +67,29 @@ docker run -d --name ehentai-signin \
   ghcr.io/akiyakiko/ehentaiautosignin:latest
 docker logs -f ehentai-signin
 ```
+
+或者，在同一目录创建 `compose.yaml`，使用 Docker Compose 启动：
+
+```yaml
+services:
+  ehentai-signin:
+    image: ghcr.io/akiyakiko/ehentaiautosignin:latest
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/data
+```
+
+将 `user` 修改为 `id -u` 和 `id -g` 输出的宿主机用户及组 ID，然后执行：
+
+```bash
+docker compose up -d
+docker compose logs -f
+```
+
+`restart: unless-stopped` 会在 Docker 服务启动时自动启动容器；请确保 Docker 服务已设置为开机启动。手动停止的容器不会自动启动。
 
 `TZ` 决定定时签到使用的时区，不设置时容器默认使用 UTC。挂载整个 `data` 目录以保存 Cookie 更新和默认日志，确保该目录对容器用户可写；单独挂载 `.env` 文件无法支持原子更新。容器内代理地址 `127.0.0.1` 指向容器自身。也可将 `latest` 替换为版本标签，例如 `v1.2.3`。
 
