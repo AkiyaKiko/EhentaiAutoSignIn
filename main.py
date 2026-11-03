@@ -12,12 +12,10 @@ from ehentai.signin import init_config, scrape
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
 
-def run_scheduled_signin():
-    """单次签到失败时继续等待下一次任务。"""
-    try:
-        scrape()
-    except Exception:
-        logging.exception('本次定时签到失败，将继续等待下一次任务。')
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        """将参数错误交给统一的日志和退出处理。"""
+        raise ValueError(message)
 
 
 def run_scheduler():
@@ -25,30 +23,35 @@ def run_scheduler():
     times = scheduled_times()
     init_config()  # 启动时检查配置；每次签到时也会重新读取。
     logging.info('定时签到已启动（系统本地时间）：%s', ', '.join(times))
-    try:
-        logging.info('启动后立即执行一次签到。')
-        run_scheduled_signin()
-        scheduler = schedule.Scheduler()
-        for scheduled_time in times:
-            scheduler.every().day.at(scheduled_time).do(run_scheduled_signin)
-        logging.info('下次签到时间：%s', scheduler.next_run)
-        while True:
-            scheduler.run_pending()
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logging.info('定时签到已停止。')
+    logging.info('启动后立即执行一次签到。')
+    scrape()
+    scheduler = schedule.Scheduler()
+    for scheduled_time in times:
+        scheduler.every().day.at(scheduled_time).do(scrape)
+    logging.info('下次签到时间：%s', scheduler.next_run)
+    while True:
+        scheduler.run_pending()
+        time.sleep(1)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='E-Hentai 自动签到')
+    parser = ArgumentParser(description='E-Hentai 自动签到')
     parser.add_argument('--once', action='store_true', help='立即执行一次签到后退出')
-    args = parser.parse_args()
-    configure_file_logging()
-    if args.once:
-        scrape()
-    else:
-        run_scheduler()
+    try:
+        configure_file_logging()
+        args = parser.parse_args()
+        if args.once:
+            scrape()
+        else:
+            run_scheduler()
+    except KeyboardInterrupt:
+        logging.info('程序已停止。')
+        return 0
+    except Exception as exc:
+        logging.error('程序运行失败：%s: %s', type(exc).__name__, exc)
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

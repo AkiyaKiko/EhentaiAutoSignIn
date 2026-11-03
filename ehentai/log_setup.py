@@ -16,7 +16,7 @@ class RetainedRotatingFileHandler(RotatingFileHandler):
     """按大小和时间轮转，并删除过期的本程序日志备份。"""
 
     def __init__(self, filename, max_bytes, retention_days):
-        super().__init__(filename, maxBytes=max_bytes, backupCount=30, encoding='utf-8', delay=True)
+        super().__init__(filename, maxBytes=max_bytes, backupCount=30, encoding='utf-8')
         self.retention_seconds = retention_days * 86400
         self.next_rollover = self.next_midnight()
         if (os.path.exists(self.baseFilename) and
@@ -68,9 +68,18 @@ def configure_file_logging():
     """按 .env 配置启用文件日志；默认只输出到控制台。"""
     keys = ('LOG_ENABLED', 'LOG_DIR', 'LOG_MAX_MB', 'LOG_RETENTION_DAYS')
     values = {key: os.getenv(key, '') for key in keys}
-    values.update(read_env())
+    errors = []
+    # 只解析日志字段，使其他配置行出错时仍能记录启动错误。
+    for key in keys:
+        try:
+            values.update(read_env(keys={key}))
+        except ValueError as exc:
+            errors.append(exc)
+            values[key] = ''
     enabled = values['LOG_ENABLED'].strip().lower()
     if enabled in ('', 'false', '0', 'no', 'off'):
+        if errors:
+            raise errors[0]
         return
     if enabled not in ('true', '1', 'yes', 'on'):
         raise ValueError('LOG_ENABLED 必须为 true 或 false。')
@@ -78,17 +87,28 @@ def configure_file_logging():
     def positive_integer(key, default):
         value = values[key].strip() or str(default)
         if not re.fullmatch(r'[0-9]+', value) or int(value) <= 0:
-            raise ValueError(f'{key} 必须是正整数。')
+            errors.append(ValueError(f'{key} 必须是正整数。'))
+            return default
         return int(value)
 
     max_mb = positive_integer('LOG_MAX_MB', 5)
     retention_days = positive_integer('LOG_RETENTION_DAYS', 30)
-    directory = Path(values['LOG_DIR'].strip() or 'logs').expanduser()
-    if not directory.is_absolute():
-        directory = ENV_PATH.parent / directory
-    directory.mkdir(parents=True, exist_ok=True)
-    handler = RetainedRotatingFileHandler(directory / 'ehentai.log', max_mb * 1024 * 1024, retention_days)
+    default_directory = ENV_PATH.parent / 'logs'
+    try:
+        directory = Path(values['LOG_DIR'].strip() or 'logs').expanduser()
+        if not directory.is_absolute():
+            directory = ENV_PATH.parent / directory
+        directory.mkdir(parents=True, exist_ok=True)
+        handler = RetainedRotatingFileHandler(directory / 'ehentai.log', max_mb * 1024 * 1024, retention_days)
+    except (OSError, ValueError) as exc:
+        # 配置目录不可用时，尽量在默认位置记录启动错误。
+        errors.append(exc)
+        directory = default_directory
+        directory.mkdir(parents=True, exist_ok=True)
+        handler = RetainedRotatingFileHandler(directory / 'ehentai.log', max_mb * 1024 * 1024, retention_days)
     handler.setLevel(logging.INFO)
     handler.setFormatter(logging.Formatter(LOG_FORMAT))
     logging.getLogger().addHandler(handler)
     logging.info('本地文件日志已启用：%s', directory / 'ehentai.log')
+    if errors:
+        raise errors[0]

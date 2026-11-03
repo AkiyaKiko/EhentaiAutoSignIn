@@ -9,7 +9,7 @@ from ehentai import log_setup
 
 
 def test_disabled_by_default(tmp_path, monkeypatch):
-    monkeypatch.setattr(log_setup, 'read_env', lambda: {})
+    monkeypatch.setattr(log_setup, 'read_env', lambda **kwargs: {})
     monkeypatch.setattr(log_setup, 'ENV_PATH', tmp_path / '.env')
     with patch.dict(os.environ, {}, clear=True):
         log_setup.configure_file_logging()
@@ -19,7 +19,7 @@ def test_disabled_by_default(tmp_path, monkeypatch):
 def test_configuration_and_output(tmp_path, monkeypatch, caplog):
     root = logging.getLogger()
     before = set(root.handlers)
-    monkeypatch.setattr(log_setup, 'read_env', lambda: {
+    monkeypatch.setattr(log_setup, 'read_env', lambda **kwargs: {
         'LOG_ENABLED': 'true', 'LOG_DIR': 'custom',
         'LOG_MAX_MB': '2', 'LOG_RETENTION_DAYS': '7',
     })
@@ -71,7 +71,15 @@ def test_rotation_and_expiration_only_delete_owned_backups(tmp_path):
     {'LOG_ENABLED': 'true', 'LOG_MAX_MB': '0'},
     {'LOG_ENABLED': 'true', 'LOG_RETENTION_DAYS': '-1'},
 ])
-def test_invalid_enabled_configuration(config, monkeypatch):
-    monkeypatch.setattr(log_setup, 'read_env', lambda: config)
-    with patch.dict(os.environ, {}, clear=True), pytest.raises(ValueError):
-        log_setup.configure_file_logging()
+def test_invalid_enabled_configuration(config, monkeypatch, tmp_path):
+    root = logging.getLogger()
+    before = set(root.handlers)
+    monkeypatch.setattr(log_setup, 'ENV_PATH', tmp_path / '.env')
+    monkeypatch.setattr(log_setup, 'read_env', lambda **kwargs: config)
+    try:
+        with patch.dict(os.environ, {}, clear=True), pytest.raises(ValueError):
+            log_setup.configure_file_logging()
+    finally:
+        for handler in set(root.handlers) - before:
+            root.removeHandler(handler)
+            handler.close()

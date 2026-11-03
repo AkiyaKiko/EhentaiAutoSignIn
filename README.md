@@ -17,14 +17,14 @@
    E_PROXY=''
    E_USER_AGENT=''
    Notify=''
-   E_SCHEDULE='00:30,12:30'
+   E_SCHEDULE='00:30,06:30,12:30,18:30'
    ```
 
    - `E_COOKIE` 必填，建议复制浏览器发送的完整 Cookie；必须包含 `event` 字段，值可以是任意数字。服务端更新受支持的 Cookie 时，程序会自动写回 `.env`。
    - `E_PROXY` 可留空，支持 HTTP、HTTPS、SOCKS4 和 SOCKS5；带 `socks4a://` 或 `socks5h://` 的地址通过代理解析域名。具体样例见 `.env` 注释。
    - `E_USER_AGENT` 可留空，留空时使用默认值。
    - `Notify` 可留空或填 `{}` 关闭通知；配置方法见下文。
-   - `E_SCHEDULE` 为逗号分隔的 24 小时时间，留空时默认每天 00:30 和 12:30，按系统本地时间运行。
+   - `E_SCHEDULE` 为逗号分隔的 24 小时时间，可任意设置数量，例如 `00:30,6:30,11:11,12:30,18:30`。时间必须从早到晚排列，重复时间会自动去重；留空时默认每天 00:30、06:30、12:30 和 18:30，按系统本地时间运行。
 
    `.env` 中的配置优先于同名系统环境变量。请保持程序目录可写，并妥善保管 Cookie 和通知 Token。
 4. **执行可执行文件。** 在解压目录打开终端，运行：
@@ -43,7 +43,27 @@
 
 程序启动后立即签到一次，然后按配置时间继续执行。定时模式需要保持进程运行；修改定时配置后需重启。Cookie 更新和默认的 `logs` 目录位于可执行文件所在目录。
 
+配置或签到发生无法继续的错误时，程序会输出错误并以非零状态退出；开启文件日志后也会记录启动和运行错误。如果配置的日志目录不可用，程序会尝试将错误写入默认的 `logs` 目录。
+
 发布包不包含 `.env`、日志或目录条目；文件权限和 ZIP 元数据会在发布前校验。Linux 发布流程会在隔离目录中验证普通用户及 root 解压，确保目标目录和已有配置、日志的权限与属主不变。
+
+## Docker 部署
+
+镜像支持 Linux amd64 和 arm64。以下以 Linux 为例，在包含 `.env.example` 的目录中执行：
+
+```bash
+mkdir -p data
+cp .env.example data/.env
+# 编辑 data/.env，填写 Cookie 等配置
+docker run -d --name ehentai-signin \
+  --user "$(id -u):$(id -g)" \
+  -e TZ=Asia/Shanghai \
+  -v "$(pwd)/data:/data" \
+  ghcr.io/akiyakiko/ehentaiautosignin:latest
+docker logs -f ehentai-signin
+```
+
+`TZ` 决定定时签到使用的时区，不设置时容器默认使用 UTC。挂载整个 `data` 目录以保存 Cookie 更新和默认日志，确保该目录对容器用户可写；单独挂载 `.env` 文件无法支持原子更新。容器内代理地址 `127.0.0.1` 指向容器自身。也可将 `latest` 替换为版本标签，例如 `v1.2.3`。
 
 ## 消息通知
 

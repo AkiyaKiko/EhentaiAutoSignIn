@@ -1,0 +1,11 @@
+*
+!Dockerfile
+!pyproject.toml
+!README.md
+!main.py
+!notify.py
+!ehentai/
+!ehentai/__init__.py
+!ehentai/config.py
+!ehentai/log_setup.py
+!ehentai/signin.py

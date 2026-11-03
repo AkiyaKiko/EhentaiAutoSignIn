@@ -8,18 +8,21 @@ import tempfile
 
 
 def application_dir():
-    """源码运行时使用项目目录；打包后使用可执行文件所在目录。"""
+    """优先使用指定的数据目录，否则使用源码或可执行文件所在目录。"""
+    data_dir = os.getenv('EHENTAI_DATA_DIR', '').strip()
+    if data_dir:
+        return Path(data_dir).expanduser().resolve()
     if getattr(sys, 'frozen', False):
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 
 ENV_PATH = application_dir() / '.env'
-DEFAULT_SCHEDULE = ('00:30', '12:30')
+DEFAULT_SCHEDULE = ('00:30', '06:30', '12:30', '18:30')
 
 
-def read_env(path=ENV_PATH):
-    """读取项目的 .env；支持未引用值、单引号和 JSON 风格的双引号。"""
+def read_env(path=ENV_PATH, *, keys=None):
+    """读取 .env；指定 keys 时只解析所需配置，供日志提前初始化。"""
     values = {}
     if not path.exists():
         return values
@@ -31,6 +34,8 @@ def read_env(path=ENV_PATH):
             line = line[7:].lstrip()
         key, separator, value = line.partition('=')
         key, value = key.strip(), value.strip()
+        if keys is not None and key not in keys:
+            continue
         if not separator or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key):
             raise ValueError(f'.env 第 {number} 行格式无效')
         if value.startswith('"'):
@@ -74,15 +79,23 @@ def save_cookie(cookie, path=ENV_PATH):
 
 
 def scheduled_times():
-    """读取每天执行的本地时间，缺省时每天执行两次。"""
+    """读取每天执行的本地时间，缺省时每天执行四次。"""
     value = read_env().get('E_SCHEDULE', os.getenv('E_SCHEDULE', ''))
     if not value.strip():
         return DEFAULT_SCHEDULE
 
-    times = [item.strip() for item in value.split(',')]
-    for item in times:
-        if not re.fullmatch(r'(?:[01]\d|2[0-3]):[0-5]\d', item):
-            raise ValueError('E_SCHEDULE 格式无效，请使用逗号分隔的 24 小时制时间，例如 00:30,12:30。')
-    if len(times) != len(set(times)):
-        raise ValueError('E_SCHEDULE 不能包含重复的时间。')
+    times = []
+    seen = set()
+    for item in value.split(','):
+        item = item.strip()
+        if not re.fullmatch(r'(?:[0-9]|[01][0-9]|2[0-3]):[0-5][0-9]', item):
+            raise ValueError('E_SCHEDULE 格式无效，请使用逗号分隔的 24 小时制时间，例如 00:30,6:30。')
+        hour, minute = item.split(':')
+        normalized = f'{int(hour):02d}:{minute}'
+        if normalized in seen:
+            continue
+        if times and normalized < times[-1]:
+            raise ValueError('E_SCHEDULE 时间必须按从早到晚的顺序排列。')
+        seen.add(normalized)
+        times.append(normalized)
     return tuple(times)

@@ -17,14 +17,14 @@ Automatically visits the E-Hentai news page to sign in. Supports scheduled sign-
    E_PROXY=''
    E_USER_AGENT=''
    Notify=''
-   E_SCHEDULE='00:30,12:30'
+   E_SCHEDULE='00:30,06:30,12:30,18:30'
    ```
 
    - `E_COOKIE` is required. Copying the complete Cookie sent by your browser is recommended. It must include an `event` field, whose value can be any number. When the server updates supported Cookie fields, the program writes the changes back to `.env`.
    - `E_PROXY` is optional. HTTP, HTTPS, SOCKS4, and SOCKS5 are supported. For example, use `http://127.0.0.1:7890` for an HTTP proxy or `socks5h://127.0.0.1:1080` for SOCKS5. Addresses beginning with `socks4a://` or `socks5h://` resolve domain names through the proxy.
    - `E_USER_AGENT` is optional; an empty value uses the default.
    - `Notify` can be empty or `{}` to disable notifications. See the section below for configuration.
-   - `E_SCHEDULE` is a comma-separated list of 24-hour times. If empty, it defaults to 00:30 and 12:30 every day, using the system's local time.
+   - `E_SCHEDULE` is a comma-separated list of 24-hour times, with any number of entries, for example `00:30,6:30,11:11,12:30,18:30`. Times must be in ascending order; duplicates are removed. If empty, it defaults to 00:30, 06:30, 12:30, and 18:30 every day, using the system's local time.
 
    Values in `.env` take precedence over matching system environment variables. Keep the program directory writable, and keep your Cookie and notification tokens private.
 4. **Run the executable.** Open a terminal in the extracted directory and run:
@@ -43,7 +43,27 @@ Automatically visits the E-Hentai news page to sign in. Supports scheduled sign-
 
 The program signs in once at startup, then continues according to the configured schedule. Keep the process running for scheduled sign-ins, and restart it after changing the schedule. Updated Cookies and the default `logs` directory are stored alongside the executable.
 
+If a configuration or sign-in error prevents further execution, the program reports the error and exits with a nonzero status. When file logging is enabled, startup and runtime errors are recorded there too. If the configured log directory is unavailable, the program attempts to record the error in the default `logs` directory.
+
 Release archives do not contain `.env`, logs, or directory entries. File permissions and ZIP metadata are checked before publishing. The Linux release workflow also tests extraction as a regular user and as root in isolated directories, verifying that existing configuration, logs, and destination directory permissions and ownership remain unchanged.
+
+## Docker deployment
+
+The image supports Linux amd64 and arm64. For example, on Linux, run the following in a directory containing `.env.example`:
+
+```bash
+mkdir -p data
+cp .env.example data/.env
+# Edit data/.env and configure your Cookie and other settings.
+docker run -d --name ehentai-signin \
+  --user "$(id -u):$(id -g)" \
+  -e TZ=Asia/Shanghai \
+  -v "$(pwd)/data:/data" \
+  ghcr.io/akiyakiko/ehentaiautosignin:latest
+docker logs -f ehentai-signin
+```
+
+`TZ` sets the time zone used for scheduled sign-ins; the container defaults to UTC. Mount the entire `data` directory to persist Cookie updates and default logs, and make sure the container user can write to it. Mounting `.env` alone does not support atomic updates. Inside the container, proxy address `127.0.0.1` refers to the container itself. You can replace `latest` with a version tag, such as `v1.2.3`.
 
 ## Notifications
 

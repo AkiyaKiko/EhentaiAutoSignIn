@@ -175,3 +175,4 @@ cython_debug/
 
 # Local log files and their rotated backups
 /logs/
+/data/
